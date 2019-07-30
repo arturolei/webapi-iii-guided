@@ -5,6 +5,11 @@ const Messages = require('../messages/messages-model.js');
 
 const router = express.Router();
 
+router.use((req,res, next)=>{
+  console.log('hubs router active!');
+  next();
+})
+
 // this only runs if the url has /api/hubs in it
 router.get('/', async (req, res) => {
   try {
@@ -21,15 +26,17 @@ router.get('/', async (req, res) => {
 
 // /api/hubs/:id
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', validateID, async (req, res) => {
   try {
+    res.status(200).json(req.hub);
+    /*
     const hub = await Hubs.findById(req.params.id);
 
     if (hub) {
       res.status(200).json(hub);
     } else {
       res.status(404).json({ message: 'Hub not found' });
-    }
+    }*/
   } catch (error) {
     // log error to server
     console.log(error);
@@ -39,7 +46,11 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', checkBody, async (req, res) => {
+  
+  /*
+  
+  */ 
   try {
     const hub = await Hubs.add(req.body);
     res.status(201).json(hub);
@@ -52,7 +63,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', validateID,async (req, res) => {
   try {
     const count = await Hubs.remove(req.params.id);
     if (count > 0) {
@@ -69,7 +80,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', validateID,async (req, res) => {
   try {
     const hub = await Hubs.update(req.params.id, req.body);
     if (hub) {
@@ -88,7 +99,7 @@ router.put('/:id', async (req, res) => {
 
 // add an endpoint that returns all the messages for a hub
 // this is a sub-route or sub-resource
-router.get('/:id/messages', async (req, res) => {
+router.get('/:id/messages', validateID, async (req, res) => {
   try {
     const messages = await Hubs.findHubMessages(req.params.id);
 
@@ -103,7 +114,7 @@ router.get('/:id/messages', async (req, res) => {
 });
 
 // add an endpoint for adding new message to a hub
-router.post('/:id/messages', async (req, res) => {
+router.post('/:id/messages', validateID, async (req, res) => {
   const messageInfo = { ...req.body, hub_id: req.params.id };
 
   try {
@@ -117,5 +128,37 @@ router.post('/:id/messages', async (req, res) => {
     });
   }
 });
+
+async function validateID(req, res, next){
+  try {
+    const {id} = req.params;
+    const hub = await Hubs.findById(id);
+    if (hub) {
+      req.hub = hub;
+      next();
+    } else {
+      res.status(404).json({message:"id not found"})
+    }
+  } catch {
+    res.status(500).json(error);
+  }
+  
+}
+
+async function checkBody(req, res, next){
+  try{
+    const {body} = req.body;
+    if(body){
+      req.body = body;
+      next();
+    } else {
+      res.status(404).json({message:"No body"});
+    }
+  } 
+  catch {
+    res.status(500).json(error);
+  }
+
+}
 
 module.exports = router;
